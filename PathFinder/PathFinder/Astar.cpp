@@ -1,57 +1,74 @@
 #include "stdafx.h"
 #include "Astar.h"
 
-
-CMinHeap g_OpenList;
-CMinHeap g_CloseList;
-
-st_NODE g_stPath[df_PATHS_MAX] = { 0, };
-int g_iPathCnt = df_PATHS_MAX;
-
-
-void PathFind(int iStartX, int iStartY, int iEndX, int iEndY)
+CAStar_Manager::CAStar_Manager()
 {
-	// 시작점 노드 생성, 셋팅
-	st_NODE *newNode = new st_NODE();
-	newNode->pParent = NULL;
-	newNode->iX = iStartX;
-	newNode->iY = iStartY;
-	newNode->G = 0;
-	newNode->H = abs(iStartX - iEndX) + abs(iStartY - iEndY);
-	newNode->F = newNode->G + newNode->H;
-	g_OpenList.Insert(newNode);
-
-
-	SetTimer(g_hWnd, df_TIMER_STEP_FIND, df_PERIOD_STEP_FIND, NULL);
+	m_BsetList.clear();
+	m_iMaxFindCount = 100;
 }
 
-BOOL FindProcess(int iEndX, int iEndY, st_NODE *pNode, int *pMaxPath)
+CAStar_Manager::~CAStar_Manager()
 {
-	st_NODE *pOldNode = g_OpenList.Remove();
-	g_CloseList.Insert(pOldNode);
+	for (auto& pNode : m_BsetList)
+		delete pNode;
 
-	// 길이 없거나 || 목적지를 찾았거나 -> 루프 탈출
-	// 값으로 비교? 좌표로 비교?
-	if (pOldNode == NULL || pOldNode->H == 0)
+	m_BsetList.clear();
+}
+
+void CAStar_Manager::PathFind(st_NODE * pStart, st_NODE * pGoal)
+{
+	if (!pStart || !pGoal)
+		return;
+
+	if (pStart == pGoal)
+		return;
+
+	st_NODE* pNewNode = new st_NODE;
+	pNewNode->pParent = nullptr;
+	pNewNode->iX = pStart->iX;
+	pNewNode->iY = pStart->iY;
+	pNewNode->G = 0;
+	pNewNode->H = abs(pGoal->iX - pStart->iX) + abs(pGoal->iY - pStart->iY);
+	pNewNode->F = pNewNode->G + pNewNode->H;
+	
+	m_OpenList.push_back(pNewNode);
+
+	m_pGoal = pGoal;
+	// TODO : timer setting
+}
+
+bool CAStar_Manager::FindProcess()
+{
+	//--------------------------------------------------
+	// 최대 탐색 가능한 기회를 넘어서면 실패로 처리
+	//--------------------------------------------------
+	++m_iCurFindCount;
+	if (m_iMaxFindCount < m_iCurFindCount)
+		return false;
+
+	st_NODE* pOldNode = m_OpenList.front();
+	m_OpenList.pop_front();
+	m_CloseList.push_back(pOldNode);
+
+	//--------------------------------------------------
+	// 길이 없거나 || 목적지를 찾았거나
+	//--------------------------------------------------
+	if (!pOldNode || !pOldNode->H)
 	{
-		// pNode에 담아주고 끝내야함 DomainToIP 처럼
-		int iPathCnt = 0;
-		while (pOldNode != NULL && iPathCnt < *pMaxPath)
+		while (nullptr != pOldNode)
 		{
-			pNode[iPathCnt] = *pOldNode;
+			m_BsetList.push_back(pOldNode);
 			pOldNode = pOldNode->pParent;
-			iPathCnt++;
 		}
-		// path max count renew
-		*pMaxPath = iPathCnt;
-		return TRUE;
+
+		return true;
 	}
 
-	CreateExpandNode(pOldNode, iEndX, iEndY);
-	return FALSE;
+	CreateExpandNode(pOldNode);
+	return false;
 }
 
-void CreateExpandNode(st_NODE * pParent, int iEndX, int iEndY)
+void CAStar_Manager::CreateExpandNode(st_NODE * pParent)
 {
 	int iX = pParent->iX;
 	int iY = pParent->iY;
@@ -59,98 +76,104 @@ void CreateExpandNode(st_NODE * pParent, int iEndX, int iEndY)
 	// ↖
 	if (ValidateExpand(iX - 1, iY - 1))
 	{
-		CreateNode(pParent, iX - 1, iY - 1, iEndX, iEndY, df_WEIGHT_DIAGONAL);
+		CreateNode(pParent, iX - 1, iY - 1, m_iWeight_Diagonal);
 	}
 
 	// ↑
 	if (ValidateExpand(iX, iY - 1))
 	{
-		CreateNode(pParent, iX, iY - 1, iEndX, iEndY);
+		CreateNode(pParent, iX, iY - 1);
 	}
 
 	// ↗
 	if (ValidateExpand(iX + 1, iY - 1))
 	{
-		CreateNode(pParent, iX + 1, iY - 1, iEndX, iEndY, df_WEIGHT_DIAGONAL);
+		CreateNode(pParent, iX + 1, iY - 1, m_iWeight_Diagonal);
 	}
 
 	// ←
 	if (ValidateExpand(iX - 1, iY))
 	{
-		CreateNode(pParent, iX - 1, iY, iEndX, iEndY);
+		CreateNode(pParent, iX - 1, iY);
 	}
 
 	// →
 	if (ValidateExpand(iX + 1, iY))
 	{
-		CreateNode(pParent, iX + 1, iY, iEndX, iEndY);
+		CreateNode(pParent, iX + 1, iY);
 	}
 
 	// ↙
 	if (ValidateExpand(iX - 1, iY + 1))
 	{
-		CreateNode(pParent, iX - 1, iY + 1, iEndX, iEndY, df_WEIGHT_DIAGONAL);
+		CreateNode(pParent, iX - 1, iY + 1, m_iWeight_Diagonal);
 	}
 
 	// ↓
 	if (ValidateExpand(iX, iY + 1))
 	{
-		CreateNode(pParent, iX, iY + 1, iEndX, iEndY);
+		CreateNode(pParent, iX, iY + 1);
 	}
 
 	// ↘
 	if (ValidateExpand(iX + 1, iY + 1))
 	{
-		CreateNode(pParent, iX + 1, iY + 1, iEndX, iEndY, df_WEIGHT_DIAGONAL);
+		CreateNode(pParent, iX + 1, iY + 1, m_iWeight_Diagonal);
 	}
 }
 
-bool ValidateExpand(int iX, int iY)
+bool CAStar_Manager::ValidateExpand(int iX, int iY)
 {
-	if (iX < 0 || iY < 0 || iX > df_TILE_WIDTH - 1 || iY > df_TILE_HEIGHT - 1)
+	// 범위 밖
+	if (0 > iX || 0 > iY ||
+		iX > df_TILE_WIDTH - 1 || iY > df_TILE_HEIGHT - 1)
 		return false;
 
-	if (g_eColorMap[iY][iX] == eNODESTATE::BLOCK)
+	// 장애물
+	if (g_ColorMap[iY][iX] == BLOCK)
 		return false;
 
 	return true;
 }
 
-void CreateNode(st_NODE * pParent, int iX, int iY, int iEndX, int iEndY, int iWeight)
+void CAStar_Manager::CreateNode(st_NODE * pParent, int iNextX, int iNextY, int iWeight)
 {
-	int G = pParent->G + iWeight;
+	if (!pParent)
+		return;
 
-	st_NODE *pOldNode = g_OpenList.GetNode(iX, iY);
-	if (pOldNode != NULL)
+	// find x, y
+	st_NODE* pOldNode = nullptr;
+	for (auto& pNode : m_OpenList)
 	{
-		if (pOldNode->G > G)
+		if (pOldNode->iX == iNextX && pOldNode->iY == iNextY)
 		{
-			pOldNode->pParent = pParent;
-			pOldNode->G = G;
-			pOldNode->F = G + pOldNode->H;
-			g_OpenList.ResortHeap(pOldNode);
+			pOldNode = pNode;
+			break;
 		}
-		return;
 	}
 
-	pOldNode = g_CloseList.GetNode(iX, iY);
-	if (pOldNode != NULL)
+	if (!pOldNode)
+		return;
+
+	int G = pParent->G + iWeight;
+	if (pOldNode->G > G)
 	{
-		//if (pOldNode->G > G)
-		//{
-		//	pOldNode->pParent = pParent;
-		//	pOldNode->G = G;
-		//	pOldNode->F = G + pOldNode->H;
-		//}
-		return;
+		pOldNode->pParent = pParent;
+		pOldNode->G = G;
+		pOldNode->F = G + pOldNode->H;
+		m_OpenList.sort();
 	}
 
-	st_NODE *pNewNode = new st_NODE();
+	// close list는 일단 생략
+
+	st_NODE* pNewNode = new st_NODE;
 	pNewNode->pParent = pParent;
-	pNewNode->iX = iX;
-	pNewNode->iY = iY;
+	pNewNode->iX = iNextX;
+	pNewNode->iY = iNextY;
 	pNewNode->G = G;
-	pNewNode->H = (abs(iX - iEndX) + abs(iY - iEndY)) * 10;
+	pNewNode->H = abs(iNextX - m_pGoal->iX) + abs(iNextY - m_pGoal->iY);
 	pNewNode->F = G + pNewNode->H;
-	g_OpenList.Insert(pNewNode);
+	
+	m_OpenList.push_back(pNewNode);
+	m_OpenList.sort();
 }

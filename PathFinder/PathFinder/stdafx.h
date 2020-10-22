@@ -19,6 +19,9 @@
 #include <memory.h>
 #include <tchar.h>
 #include <time.h>
+#include <queue>
+#include <vector>
+#include <list>
 
 
 // 여기서 프로그램에 필요한 추가 헤더를 참조합니다.
@@ -27,3 +30,5 @@
 #include "Render.h"
 #include "PathFinder.h"
 //#include "Bresenham.h"
+
+using namespace std;

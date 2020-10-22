@@ -147,6 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Astar.h" />
     <ClInclude Include="CommonDefines.h" />
     <ClInclude Include="PathFinder.h" />
     <ClInclude Include="Render.h" />
@@ -156,6 +157,7 @@
     <ClInclude Include="Tile.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Astar.cpp" />
     <ClCompile Include="PathFinder.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="stdafx.cpp">

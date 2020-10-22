@@ -1,27 +1,46 @@
-#ifndef __ASTAR__
-#define __ASTAR__
+#pragma once
+#ifndef __ASART_H__
+#define __ASART_H__
 
-#define df_WEIGHT_STRAIGHT	10
-#define df_WEIGHT_DIAGONAL	14
-
-
-#define df_PATHS_MAX		100
-
-extern CMinHeap g_OpenList;
-extern CMinHeap g_CloseList;
-
-extern st_NODE g_stPath[df_PATHS_MAX];
-extern int g_iPathCnt;
+class CAStar_Manager
+{
+public:
+	CAStar_Manager();
+	~CAStar_Manager();
 
 
-void PathFind(int iStartX, int iStartY, int iEndX, int iEndY);
+public:
+	void PathFind(st_NODE* pStart, st_NODE* pGoal);
 
-BOOL FindProcess(int iEndX, int iEndY, st_NODE *pNode, int *pMaxPath);
+	bool FindProcess();
 
-void CreateExpandNode(st_NODE *pParent, int iEndX, int iEndY);
+	void CreateExpandNode(st_NODE* pParent);
 
-bool ValidateExpand(int iX, int iY);
+	bool ValidateExpand(int iNextX, int iNextY);
 
-void CreateNode(st_NODE *pParent, int iX, int iY, int iEndX, int iEndY, int iWeight = df_WEIGHT_STRAIGHT);
+	void CreateNode(st_NODE* pParent, int iNextX, int iNextY, int iWeight = 10);
 
-#endif
+	
+
+private:
+	//	얘는 NavAgent Component 등록해주고, 얘가 들고 있는 bestlist에 전달해준다.
+	//	ㄴ tile_pos 같은 구조체를 여기서 리스트나 큐로 들고 있고, 여기다가 position이나 index 셋팅해준다.
+	//	queue<CGameObject*> m_AgentList;
+
+	st_NODE* m_pGoal = nullptr;
+
+	list<st_NODE*> m_OpenList;
+	list<st_NODE*> m_CloseList;
+	list<st_NODE*> m_BsetList;
+
+
+
+	int		m_iWeight_Staraight = 10;
+	int		m_iWeight_Diagonal = 14;
+	int		m_iMaxFindCount = 0;
+	int		m_iCurFindCount = 0;
+};
+
+
+
+#endif // !__ASART_H__

@@ -48,7 +48,32 @@ struct st_NODE
 	int G;				// 이동 거리
 	int H;				// 목적지와의 거리 (dx + dy) (* weight 값을 줄수도 있음) 
 	int F;				// G + H (* weight 값을 줄수도 있음)
+
+	bool operator()(st_NODE* pSrc, st_NODE* pDst)
+	{
+		if (pSrc->G < pDst->G)
+			return true;
+
+		if (pSrc->G == pDst->G)
+		{
+			if (pSrc->H < pDst->H)
+				return true;
+
+			if (pSrc->H == pDst->H)
+			{
+				if (pSrc->F < pSrc->F)
+					return true;
+			}
+		}
+
+		return false;
+	}
 };
 
+typedef struct st_VEC2
+{
+	int iX;
+	int iY;
+} _vec2;
 
 #endif
