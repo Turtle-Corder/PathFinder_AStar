@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "PathFinder.h"
+#include "Astar.h"
 
 HWND g_hWnd = NULL;
 HINSTANCE g_hInst = NULL;
@@ -24,7 +25,7 @@ COLORREF g_LineTestMap[df_TILE_HEIGHT][df_TILE_WIDTH] = { RGB(255,255,255), };
 int g_iLineStartX = 0, g_iLineStartY = 0;
 int g_iLineEndX = 0, g_iLineEndY = 0;
 
-
+CAStar_Manager* g_pAStarMgr = new CAStar_Manager;
 
 // 이 코드 모듈에 포함된 함수의 선언을 전달합니다:
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -109,6 +110,34 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+	case WM_TIMER:
+	{
+		switch (wParam)
+		{
+		case df_TIMER_STEP_FIND:
+		{
+			HRESULT hr = g_pAStarMgr->FindProcess();
+			if (!hr) g_bProcessEnd = true;
+
+			if (g_bProcessEnd)
+			{
+				KillTimer(g_hWnd, df_TIMER_STEP_FIND);
+				g_bOnProcess = FALSE;
+
+				for (auto& pNode : g_pAStarMgr->m_BestList)
+					g_eStateMap[pNode->iY][pNode->iX] = eNODESTATE::PURPLE;
+			}
+
+			InvalidateRect(g_hWnd, NULL, TRUE);
+		}
+		break;
+
+		default:
+			break;
+		}
+	}
+		break;
+
 	case WM_LBUTTONDOWN:
 	{
 		if (g_bOnProcess)
@@ -118,40 +147,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		RECT stRect;
 		if (!PosToTile(lParam, &iTileX, &iTileY))
 			break;
-
-		if (g_bLineTest)
+		
+		if (GetTileState(iTileX, iTileY) != eNODESTATE::BLOCK)
 		{
-			if (g_LineTestMap[iTileY][iTileX] != RGB(0, 255, 0))
-			{
-				if (g_LineTestMap[g_iLineStartY][g_iLineStartX] == RGB(0, 255, 0))
-				{
-					g_LineTestMap[g_iLineStartY][g_iLineStartX] = RGB(255, 255, 255);
-					if (GetInvalidateArea(g_iLineStartX, g_iLineStartY, &stRect))
-						InvalidateRect(g_hWnd, &stRect, TRUE);
-				}
-
-				g_LineTestMap[iTileY][iTileX] = RGB(0, 255, 0);
-				if (GetInvalidateArea(iTileX, iTileY, &stRect))
-					InvalidateRect(g_hWnd, &stRect, TRUE);
-
-				g_iLineStartX = iTileX;
-				g_iLineStartY = iTileY;
-			}
-			else
-			{
-				g_LineTestMap[iTileY][iTileX] = RGB(255, 255, 255);
-				if (GetInvalidateArea(iTileX, iTileY, &stRect))
-					InvalidateRect(g_hWnd, &stRect, TRUE);
-			}
-		}
-		else
-		{
-			if (GetTileState(iTileX, iTileY) != eNODESTATE::BLOCK)
-			{
-				SetTileState(eNODESTATE::BLOCK, iTileX, iTileY);
-				if (GetInvalidateArea(iTileX, iTileY, &stRect))
-					InvalidateRect(g_hWnd, &stRect, TRUE);
-			}
+			SetTileState(eNODESTATE::BLOCK, iTileX, iTileY);
+			if (GetInvalidateArea(iTileX, iTileY, &stRect))
+				InvalidateRect(g_hWnd, &stRect, TRUE);
 		}
 	}
 	break;
@@ -166,47 +167,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (!PosToTile(lParam, &iTileX, &iTileY))
 			break;
 
-		if (g_bLineTest)
+		if (GetTileState(iTileX, iTileY) != eNODESTATE::EMPTY)
 		{
-			if (g_LineTestMap[iTileY][iTileX] != RGB(255, 0, 0))
-			{
-				if (g_LineTestMap[g_iLineEndY][g_iLineEndX] == RGB(255, 0, 0))
-				{
-					g_LineTestMap[g_iLineEndY][g_iLineEndX] = RGB(255, 255, 255);
-					if (GetInvalidateArea(g_iLineEndX, g_iLineEndY, &stRect))
-						InvalidateRect(g_hWnd, &stRect, TRUE);
-				}
-
-				g_LineTestMap[iTileY][iTileX] = RGB(255, 0, 0);
-				if (GetInvalidateArea(iTileX, iTileY, &stRect))
-					InvalidateRect(g_hWnd, &stRect, TRUE);
-
-				g_iLineEndX = iTileX;
-				g_iLineEndY = iTileY;
-			}
-			else
-			{
-				g_LineTestMap[iTileY][iTileX] = RGB(255, 255, 255);
-				if (GetInvalidateArea(iTileX, iTileY, &stRect))
-					InvalidateRect(g_hWnd, &stRect, TRUE);
-			}
-		}
-		else
-		{
-			RECT stRect;
-			if (GetTileState(iTileX, iTileY) != eNODESTATE::EMPTY)
-			{
-				SetTileState(eNODESTATE::EMPTY, iTileX, iTileY);
-				if (GetInvalidateArea(iTileX, iTileY, &stRect))
-					InvalidateRect(g_hWnd, &stRect, TRUE);
-			}
+			SetTileState(eNODESTATE::EMPTY, iTileX, iTileY);
+			if (GetInvalidateArea(iTileX, iTileY, &stRect))
+				InvalidateRect(g_hWnd, &stRect, TRUE);
 		}
 	}
 	break;
 
 	case WM_MOUSEMOVE:
 	{
-		if (g_bOnProcess || g_bLineTest)
+		if (g_bOnProcess)
 			break;
 
 		int iTileX, iTileY;
@@ -238,7 +210,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_LBUTTONDBLCLK:
 	{
-		if (g_bOnProcess || g_bLineTest)
+		if (g_bOnProcess)
 			break;
 
 		int iTileX, iTileY;
@@ -265,7 +237,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_RBUTTONDBLCLK:
 	{
-		if (g_bOnProcess || g_bLineTest)
+		if (g_bOnProcess)
 			break;
 
 		int iTileX, iTileY;
@@ -297,13 +269,21 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// normal run
 		case VK_F1:
 		{
-
+			if (g_bOnProcess)
+				break;
+	
+			HRESULT hr = g_pAStarMgr->PathFind(g_iStartX, g_iStartY, g_iEndX, g_iEndY);
+			if (!hr)
+			{
+				g_bOnProcess = true;
+				SetTimer(g_hWnd, df_TIMER_STEP_FIND, df_PERIOD_STEP_FIND, NULL);
+			}
 		}
 		break;
 		
 		case VK_F3:
 		{
-			AllClear();
+			PathClear();
 		}
 		break;
 

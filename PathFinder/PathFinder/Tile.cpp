@@ -8,7 +8,6 @@ void InitTiles()
 		for (int iWidth = 0; iWidth < df_TILE_WIDTH; iWidth++)
 		{
 			SetTileState(eNODESTATE::EMPTY, iWidth, iHeight);
-			SetTileColor(RGB(255, 255, 255), iWidth, iHeight);
 		}
 	}
 }
@@ -73,8 +72,6 @@ COLORREF GetTileColor(int iX, int iY)
 
 void Reset()
 {
-
-
 	g_bProcessEnd = FALSE;
 	g_bOnProcess = FALSE;
 }

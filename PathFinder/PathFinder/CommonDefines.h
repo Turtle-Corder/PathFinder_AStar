@@ -31,44 +31,12 @@ typedef enum e_NODE_STATE
 
 	YELLOW,	// 가본 길
 	CLOSE = YELLOW,
+
+	PURPLE,
+	BEST = PURPLE,
+
 } eNODESTATE;
 
-
-
-#define df_HEAPSIZE_MAX 1000
-
-#define PARENT(x)		((x-1)/2)
-#define LEFT_CHILD(x)	((2*x)+1)
-#define RIGHT_CHILD(x)	((2*x)+2)
-
-struct st_NODE
-{
-	st_NODE *pParent;	// 부모노드 포인터
-	int iX, iY;			// 타일 X, Y 좌표
-	int G;				// 이동 거리
-	int H;				// 목적지와의 거리 (dx + dy) (* weight 값을 줄수도 있음) 
-	int F;				// G + H (* weight 값을 줄수도 있음)
-
-	bool operator()(st_NODE* pSrc, st_NODE* pDst)
-	{
-		if (pSrc->G < pDst->G)
-			return true;
-
-		if (pSrc->G == pDst->G)
-		{
-			if (pSrc->H < pDst->H)
-				return true;
-
-			if (pSrc->H == pDst->H)
-			{
-				if (pSrc->F < pSrc->F)
-					return true;
-			}
-		}
-
-		return false;
-	}
-};
 
 typedef struct st_VEC2
 {

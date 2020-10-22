@@ -3,52 +3,87 @@
 
 CAStar_Manager::CAStar_Manager()
 {
-	m_BsetList.clear();
-	m_iMaxFindCount = 100;
+	m_iMaxFindCount = 1000;
 }
 
 CAStar_Manager::~CAStar_Manager()
 {
-	for (auto& pNode : m_BsetList)
+	for (auto& pNode : m_OpenList)
 		delete pNode;
 
-	m_BsetList.clear();
+	for (auto& pNode : m_CloseList)
+		delete pNode;
+
+	for (auto& pNode : m_BestList)
+		delete pNode;
+
+	m_OpenList.clear();
+	m_CloseList.clear();
+	m_BestList.clear();
 }
 
-void CAStar_Manager::PathFind(st_NODE * pStart, st_NODE * pGoal)
+HRESULT CAStar_Manager::PathFind(int iStartX, int iStartY, int iGoalX, int iGoalY)
 {
-	if (!pStart || !pGoal)
-		return;
+	if (0 > iStartX || 0 > iStartY ||
+		df_TILE_WIDTH <= iGoalX || df_TILE_HEIGHT <= iGoalY)
+		return E_FAIL;
 
-	if (pStart == pGoal)
-		return;
+	ClearInfo();
 
+	m_iStartX = iStartX;
+	m_iStartY = iStartY;
+	m_iGoalX = iGoalX;
+	m_iGoalY = iGoalY;
+
+
+	//--------------------------------------------------
+	// 처음 하나 만들어서 넣어준다.
+	//--------------------------------------------------
 	st_NODE* pNewNode = new st_NODE;
 	pNewNode->pParent = nullptr;
-	pNewNode->iX = pStart->iX;
-	pNewNode->iY = pStart->iY;
+	pNewNode->iX = iStartX;
+	pNewNode->iY = iStartY;
 	pNewNode->G = 0;
-	pNewNode->H = abs(pGoal->iX - pStart->iX) + abs(pGoal->iY - pStart->iY);
+	pNewNode->H = abs(iGoalX - iStartX) + abs(iGoalY - iStartY);
 	pNewNode->F = pNewNode->G + pNewNode->H;
 	
 	m_OpenList.push_back(pNewNode);
 
-	m_pGoal = pGoal;
 	// TODO : timer setting
+	return S_OK;
 }
 
-bool CAStar_Manager::FindProcess()
+// 테스트를 위해 일단 노드 확장을 1회만(8방향) 시도한다
+// S_OK		: 수행 끝남
+// E_FAIL	: 수행 계속
+HRESULT CAStar_Manager::FindProcess()
 {
 	//--------------------------------------------------
 	// 최대 탐색 가능한 기회를 넘어서면 실패로 처리
+	//  -> BestList는 비어있으므로 어차피 던져줄 것 없음
 	//--------------------------------------------------
-	++m_iCurFindCount;
-	if (m_iMaxFindCount < m_iCurFindCount)
-		return false;
+	if (m_iMaxFindCount <= m_iCurFindCount)
+		return S_OK;
 
+
+	//--------------------------------------------------
+	// open list 앞에서 하나 뽑는다.
+	//--------------------------------------------------
+	if (0 >= (int)m_OpenList.size())
+		return S_OK;
+
+	++m_iCurFindCount;
 	st_NODE* pOldNode = m_OpenList.front();
 	m_OpenList.pop_front();
 	m_CloseList.push_back(pOldNode);
+
+	if (!(g_eStateMap[pOldNode->iY][pOldNode->iX] == eNODESTATE::START 
+	   || g_eStateMap[pOldNode->iY][pOldNode->iX] == eNODESTATE::END))
+	{
+		g_eStateMap[pOldNode->iY][pOldNode->iX] = eNODESTATE::CLOSE;
+	}
+
+
 
 	//--------------------------------------------------
 	// 길이 없거나 || 목적지를 찾았거나
@@ -57,15 +92,15 @@ bool CAStar_Manager::FindProcess()
 	{
 		while (nullptr != pOldNode)
 		{
-			m_BsetList.push_back(pOldNode);
+			m_BestList.push_front(pOldNode);
 			pOldNode = pOldNode->pParent;
 		}
 
-		return true;
+		return S_OK;
 	}
 
 	CreateExpandNode(pOldNode);
-	return false;
+	return E_FAIL;
 }
 
 void CAStar_Manager::CreateExpandNode(st_NODE * pParent)
@@ -79,16 +114,34 @@ void CAStar_Manager::CreateExpandNode(st_NODE * pParent)
 		CreateNode(pParent, iX - 1, iY - 1, m_iWeight_Diagonal);
 	}
 
+	// ↗
+	if (ValidateExpand(iX + 1, iY - 1))
+	{
+		CreateNode(pParent, iX + 1, iY - 1, m_iWeight_Diagonal);
+	}
+
+	// ↙
+	if (ValidateExpand(iX - 1, iY + 1))
+	{
+		CreateNode(pParent, iX - 1, iY + 1, m_iWeight_Diagonal);
+	}
+
+	// ↘
+	if (ValidateExpand(iX + 1, iY + 1))
+	{
+		CreateNode(pParent, iX + 1, iY + 1, m_iWeight_Diagonal);
+	}
+
 	// ↑
 	if (ValidateExpand(iX, iY - 1))
 	{
 		CreateNode(pParent, iX, iY - 1);
 	}
 
-	// ↗
-	if (ValidateExpand(iX + 1, iY - 1))
+	// ↓
+	if (ValidateExpand(iX, iY + 1))
 	{
-		CreateNode(pParent, iX + 1, iY - 1, m_iWeight_Diagonal);
+		CreateNode(pParent, iX, iY + 1);
 	}
 
 	// ←
@@ -102,24 +155,6 @@ void CAStar_Manager::CreateExpandNode(st_NODE * pParent)
 	{
 		CreateNode(pParent, iX + 1, iY);
 	}
-
-	// ↙
-	if (ValidateExpand(iX - 1, iY + 1))
-	{
-		CreateNode(pParent, iX - 1, iY + 1, m_iWeight_Diagonal);
-	}
-
-	// ↓
-	if (ValidateExpand(iX, iY + 1))
-	{
-		CreateNode(pParent, iX, iY + 1);
-	}
-
-	// ↘
-	if (ValidateExpand(iX + 1, iY + 1))
-	{
-		CreateNode(pParent, iX + 1, iY + 1, m_iWeight_Diagonal);
-	}
 }
 
 bool CAStar_Manager::ValidateExpand(int iX, int iY)
@@ -130,7 +165,7 @@ bool CAStar_Manager::ValidateExpand(int iX, int iY)
 		return false;
 
 	// 장애물
-	if (g_ColorMap[iY][iX] == BLOCK)
+	if (g_eStateMap[iY][iX] == eNODESTATE::BLOCK)
 		return false;
 
 	return true;
@@ -141,39 +176,129 @@ void CAStar_Manager::CreateNode(st_NODE * pParent, int iNextX, int iNextY, int i
 	if (!pParent)
 		return;
 
-	// find x, y
+	//--------------------------------------------------
+	// case 1 :
+	// 앞으로 가야할 경로 중에 있는지 찾아본다.
+	//--------------------------------------------------
 	st_NODE* pOldNode = nullptr;
 	for (auto& pNode : m_OpenList)
 	{
-		if (pOldNode->iX == iNextX && pOldNode->iY == iNextY)
+		if (pNode->iX == iNextX && pNode->iY == iNextY)
 		{
 			pOldNode = pNode;
 			break;
 		}
 	}
 
-	if (!pOldNode)
-		return;
-
-	int G = pParent->G + iWeight;
-	if (pOldNode->G > G)
+	// 있으면..
+	if (pOldNode)
 	{
-		pOldNode->pParent = pParent;
-		pOldNode->G = G;
-		pOldNode->F = G + pOldNode->H;
-		m_OpenList.sort();
+		//--------------------------------------------------
+		// 새로운 경로가 비용이 더 작으면 갱신하고 재정렬 한다.
+		//--------------------------------------------------
+		int G = pParent->G + iWeight;
+		if (pOldNode->G > G)
+		{
+			pOldNode->pParent = pParent;
+			pOldNode->G = G;
+			// H는 그대로이므로 갱신 안함
+			pOldNode->F = G + pOldNode->H;
+			m_OpenList.sort([](const st_NODE* Src, const st_NODE* Dst)
+			{
+				if (Src->G < Dst->G)
+					return true;
+
+				if (Src->G == Dst->G)
+				{
+					if (Src->H < Dst->H)
+						return true;
+
+					if (Src->H == Dst->H)
+					{
+						if (Src->F < Dst->F)
+							return true;
+					}
+				}
+				return false;
+			});
+		}
+		return;
 	}
 
-	// close list는 일단 생략
+	
+	//--------------------------------------------------
+	// case 2 :
+	// 이미 지나친 경로
+	//--------------------------------------------------
+	for (auto& pNode : m_CloseList)
+	{
+		if (pNode->iX == iNextX && pNode->iY == iNextY)
+		{
+			pOldNode = pNode;
+			break;
+		}
+	}
 
+	if (pOldNode)
+	{
+		//--------------------------------------------------
+		//  -> 비용을 비교해서 갱신해도 된다. (드문 경우)
+		//--------------------------------------------------
+		return;
+	}
+
+
+	//--------------------------------------------------
+	// case 3 :
+	// 처음 발견한 경로, 없으므로 새로 추가 후 재정렬
+	//--------------------------------------------------
 	st_NODE* pNewNode = new st_NODE;
 	pNewNode->pParent = pParent;
 	pNewNode->iX = iNextX;
 	pNewNode->iY = iNextY;
-	pNewNode->G = G;
-	pNewNode->H = abs(iNextX - m_pGoal->iX) + abs(iNextY - m_pGoal->iY);
-	pNewNode->F = G + pNewNode->H;
+	pNewNode->G = pParent->G + iWeight;
+	pNewNode->H = (abs(iNextX - m_iGoalX) + abs(iNextY - m_iGoalY)) * 10;
+	pNewNode->F = pNewNode->G + pNewNode->H;
 	
 	m_OpenList.push_back(pNewNode);
-	m_OpenList.sort();
+	m_OpenList.sort([](const st_NODE* Src, const st_NODE* Dst)
+	{
+		if (Src->G < Dst->G)
+			return true;
+
+		if (Src->G == Dst->G)
+		{
+			if (Src->H < Dst->H)
+				return true;
+
+			if (Src->H == Dst->H)
+			{
+				if (Src->F < Dst->F)
+					return true;
+			}
+		}
+		return false;
+	});
+
+	g_eStateMap[iNextY][iNextX] = eNODESTATE::OPEN;
+}
+
+void CAStar_Manager::ClearInfo()
+{
+	for (auto& pNode : m_OpenList)
+		delete pNode;
+
+	for (auto& pNode : m_CloseList)
+		delete pNode;
+
+	m_OpenList.clear();
+	m_CloseList.clear();
+	m_BestList.clear();
+
+	m_iStartX	= -1;
+	m_iStartY	= -1;
+	m_iGoalX	= -1;
+	m_iGoalY	= -1;
+
+	m_iCurFindCount = 0;
 }

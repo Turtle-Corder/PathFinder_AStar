@@ -8,6 +8,7 @@ HBRUSH g_GreenBrush = NULL;
 HBRUSH g_GreyBrush = NULL;
 HBRUSH g_BlueBrush = NULL;
 HBRUSH g_YellowBrush = NULL;
+HBRUSH g_PurpleBrush = NULL;
 HBRUSH g_ColorBrush = NULL;
 
 HPEN g_RectPen = NULL;
@@ -24,6 +25,7 @@ void InitDrawObjects()
 	g_GreyBrush = CreateSolidBrush(RGB(97, 97, 97));
 	g_BlueBrush = CreateSolidBrush(RGB(0, 0, 255));
 	g_YellowBrush = CreateSolidBrush(RGB(255, 255, 0));
+	g_PurpleBrush = CreateSolidBrush(RGB(137, 119, 173));
 	g_RectPen = CreatePen(PS_NULL, 1, RGB(0, 0, 0));
 	g_BresenhamPen = CreatePen(PS_SOLID, 3, RGB(255, 0, 0));
 }
@@ -78,36 +80,36 @@ void DrawTIle(HDC hDC)
 	{
 		for (int iWidth = 0; iWidth < df_TILE_WIDTH; iWidth++)
 		{
-			if (g_eStateMap[iHeight][iWidth] == eNODESTATE::EMPTY)
+			switch (g_eStateMap[iHeight][iWidth])
 			{
-				g_ColorBrush = CreateSolidBrush(g_ColorMap[iHeight][iWidth]);
-				hOldBrush = (HBRUSH)SelectObject(hDC, g_ColorBrush);
-			}
+			case eNODESTATE::EMPTY:
+				hOldBrush = (HBRUSH)SelectObject(hDC, g_WhiteBrush);
+				break;
 
-			else
-			{
-				switch (g_eStateMap[iHeight][iWidth])
-				{
-				case eNODESTATE::START:
-					hOldBrush = (HBRUSH)SelectObject(hDC, g_GreenBrush);
-					break;
+			case eNODESTATE::START:
+				hOldBrush = (HBRUSH)SelectObject(hDC, g_GreenBrush);
+				break;
 
-				case eNODESTATE::END:
-					hOldBrush = (HBRUSH)SelectObject(hDC, g_RedBrush);
-					break;
+			case eNODESTATE::END:
+				hOldBrush = (HBRUSH)SelectObject(hDC, g_RedBrush);
+				break;
 
-				case eNODESTATE::BLOCK:
-					hOldBrush = (HBRUSH)SelectObject(hDC, g_GreyBrush);
-					break;
+			case eNODESTATE::BLOCK:
+				hOldBrush = (HBRUSH)SelectObject(hDC, g_GreyBrush);
+				break;
 
-				case eNODESTATE::BLUE:
-					hOldBrush = (HBRUSH)SelectObject(hDC, g_BlueBrush);
-					break;
+			case eNODESTATE::BLUE:
+				hOldBrush = (HBRUSH)SelectObject(hDC, g_BlueBrush);
+				break;
 
-				case eNODESTATE::YELLOW:
-					hOldBrush = (HBRUSH)SelectObject(hDC, g_YellowBrush);
-					break;
-				}
+			case eNODESTATE::YELLOW:
+				hOldBrush = (HBRUSH)SelectObject(hDC, g_YellowBrush);
+				break;
+
+			case eNODESTATE::PURPLE:
+				hOldBrush = (HBRUSH)SelectObject(hDC, g_PurpleBrush);
+				break;
+
 			}
 
 			Rectangle(hDC, (iWidth * df_TILE_SIZE) + 1, (iHeight * df_TILE_SIZE) + 1,
