@@ -1,9 +1,10 @@
 #include "stdafx.h"
 #include "Astar.h"
 
+
 CAStar_Manager::CAStar_Manager()
 {
-	m_iMaxFindCount = 1000;
+	m_iMaxFindCount = 10000;
 }
 
 CAStar_Manager::~CAStar_Manager()
@@ -52,6 +53,7 @@ HRESULT CAStar_Manager::PathFind(int iStartX, int iStartY, int iGoalX, int iGoal
 	// TODO : timer setting
 	return S_OK;
 }
+
 
 // 테스트를 위해 일단 노드 확장을 1회만(8방향) 시도한다
 // S_OK		: 수행 끝남

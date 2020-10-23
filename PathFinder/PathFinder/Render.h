@@ -14,7 +14,11 @@ extern HPEN g_BresenhamPen;
 
 extern TCHAR g_szShotName[64];
 
+extern _vec2 g_vPathPos[100];
+extern int g_iPathCnt;
 
+extern _vec2 g_vLinePos[100];
+extern int g_iLineCnt;
 
 void InitDrawObjects();
 
@@ -33,5 +37,6 @@ void DrawBresenham(HDC hDC);
 BOOL ScreenShot();
 
 BOOL GetTimeStamp(TCHAR* szName = (TCHAR*)_T("screenshot_"));
+
 
 #endif

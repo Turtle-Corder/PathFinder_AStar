@@ -74,6 +74,7 @@ void Reset()
 {
 	g_bProcessEnd = FALSE;
 	g_bOnProcess = FALSE;
+	g_bDrawBr = FALSE;
 }
 
 void ResetAttribute()

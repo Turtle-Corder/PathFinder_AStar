@@ -39,6 +39,9 @@
     <ClInclude Include="Astar.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="Bresenham.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -54,6 +57,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Astar.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Bresenham.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

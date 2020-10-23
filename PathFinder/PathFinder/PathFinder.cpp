@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "PathFinder.h"
 #include "Astar.h"
+#include "Bresenham.h"
 
 HWND g_hWnd = NULL;
 HINSTANCE g_hInst = NULL;
@@ -19,7 +20,7 @@ int g_iEndX = 0, g_iEndY = 0;
 
 
 BOOL g_bLineTest = FALSE;
-BOOL g_bBresenhamEnd = FALSE;
+BOOL g_bDrawBr = FALSE;
 COLORREF g_LineTestMap[df_TILE_HEIGHT][df_TILE_WIDTH] = { RGB(255,255,255), };
 
 int g_iLineStartX = 0, g_iLineStartY = 0;
@@ -51,6 +52,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	InvalidateRect(g_hWnd, NULL, TRUE);
 
     MSG msg;
+	msg.message = WM_NULL;
     while (1)
     {
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
@@ -124,17 +126,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				KillTimer(g_hWnd, df_TIMER_STEP_FIND);
 				g_bOnProcess = FALSE;
 
+				g_iPathCnt = 0;
 				for (auto& pNode : g_pAStarMgr->m_BestList)
+				{
+					g_vPathPos[g_iPathCnt++] = { pNode->iX, pNode->iY };
 					g_eStateMap[pNode->iY][pNode->iX] = eNODESTATE::PURPLE;
+				}
+
+				StartInterpolation();
 			}
 
 			InvalidateRect(g_hWnd, NULL, TRUE);
 		}
-		break;
-
+			break;
 		default:
 			break;
 		}
+
 	}
 		break;
 
@@ -313,8 +321,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
 }
@@ -384,4 +393,87 @@ BOOL InitialWindow(HINSTANCE hInstance, WNDPROC WndPorc, TCHAR * pAppName)
 	AdjustWindowRectEx(&g_WinRect, GetWindowStyle(g_hWnd), GetMenu(g_hWnd) != NULL, GetWindowStyle(g_hWnd));
 
 	return TRUE;
+}
+
+void StartInterpolation()
+{
+	ZeroMemory(g_vLinePos, sizeof(_vec2) * 100);
+
+	//----------------------------------------------------------------------------------------------------
+	// 노드 자연스럽게 보간 처리
+	//----------------------------------------------------------------------------------------------------
+	CBresenham Bresenham;
+	int iX = 0, iY = 0;
+	bool bRefine = false;
+
+	//--------------------------------------------------
+	// node 2개 이상 있는지 검사
+	//--------------------------------------------------
+	auto iter_start = g_pAStarMgr->m_BestList.begin();
+	if (g_pAStarMgr->m_BestList.size() > 2)
+	{
+		auto iter_terminal = iter_start;
+		++iter_terminal;
+
+		g_vLinePos[g_iLineCnt++] = { (*iter_start)->iX, (*iter_start)->iY };
+
+		while (true)
+		{
+			//--------------------------------------------------
+			// 다음 노드 없음, 마지막
+			//--------------------------------------------------
+			++iter_terminal;
+			if (g_pAStarMgr->m_BestList.end() == iter_terminal)
+			{
+				--iter_terminal;
+				g_vLinePos[g_iLineCnt++] = { (*iter_terminal)->iX, (*iter_terminal)->iY };
+				break;
+			}
+
+
+			//--------------------------------------------------
+			// 보간처리 할 두 위치 셋팅
+			//--------------------------------------------------
+			Bresenham.SetPosition((*iter_start)->iX, (*iter_start)->iY, (*iter_terminal)->iX, (*iter_terminal)->iY);
+
+			while (true)
+			{
+				//--------------------------------------------------
+				// 보간 작업 수행..
+				//--------------------------------------------------
+				if (!Bresenham.GetNext(&iX, &iY))
+				{
+					bRefine = true;
+					break;
+				}
+
+				//--------------------------------------------------
+				// 장애물이 있는지 체크
+				//--------------------------------------------------
+				if (!g_pAStarMgr->ValidateExpand(iX, iY))
+				{
+					bRefine = false;
+					break;
+				}
+			}
+
+			//--------------------------------------------------
+			// 장애물 있음
+			//--------------------------------------------------
+			if (!bRefine)
+			{
+				--iter_terminal;
+				g_vLinePos[g_iLineCnt++] = { (*iter_terminal)->iX, (*iter_terminal)->iY };
+
+				if (g_iLineCnt >= (int)g_pAStarMgr->m_BestList.size())
+					break;
+
+				iter_start = iter_terminal;
+				++iter_terminal;
+			}
+		}
+	}
+
+
+	g_bDrawBr = TRUE;
 }

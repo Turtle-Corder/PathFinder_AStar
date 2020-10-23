@@ -1,10 +1,9 @@
 #pragma once
-#ifndef __ASTAR_H__
-#define __ASTART_H__
+#ifndef __ASTAR__H__
+#define __ASTAR__H__
 
 #define df_TIMER_STEP_FIND	1
 #define df_PERIOD_STEP_FIND	20
-
 
 typedef struct tagNODE
 {
@@ -16,8 +15,10 @@ typedef struct tagNODE
 
 } st_NODE;
 
+
 class CAStar_Manager
 {
+
 public:
 	CAStar_Manager();
 	~CAStar_Manager();
@@ -55,7 +56,5 @@ public:
 	int		m_iMaxFindCount = 0;
 	int		m_iCurFindCount = 0;
 };
-
-
 
 #endif // !__ASART_H__

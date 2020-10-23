@@ -10,8 +10,6 @@
 
 #define df_TILE_SIZE 16
 
-#define df_PATHS_MAX		100
-
 typedef enum e_NODE_STATE
 {
 	WHITE,	// 비어있는 길
@@ -36,7 +34,6 @@ typedef enum e_NODE_STATE
 	BEST = PURPLE,
 
 } eNODESTATE;
-
 
 typedef struct st_VEC2
 {

@@ -148,6 +148,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Astar.h" />
+    <ClInclude Include="Bresenham.h" />
     <ClInclude Include="CommonDefines.h" />
     <ClInclude Include="PathFinder.h" />
     <ClInclude Include="Render.h" />
@@ -158,6 +159,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Astar.cpp" />
+    <ClCompile Include="Bresenham.cpp" />
     <ClCompile Include="PathFinder.cpp" />
     <ClCompile Include="Render.cpp" />
     <ClCompile Include="stdafx.cpp">

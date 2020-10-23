@@ -16,6 +16,12 @@ HPEN g_BresenhamPen = NULL;
 
 TCHAR g_szShotName[64];
 
+_vec2 g_vPathPos[100];
+int g_iPathCnt = 0;
+
+_vec2 g_vLinePos[100];
+int g_iLineCnt = 0;
+
 
 void InitDrawObjects()
 {
@@ -38,17 +44,9 @@ void Render(HDC hDC)
 	BitBlt(hMemDC, 0, 0, g_WinRect.right, g_WinRect.bottom, NULL, 0, 0, WHITENESS);
 
 	DrawGrid(hMemDC);
-	if (g_bLineTest)
-	{
-		DrawTIle(hMemDC);
-//		DrawBresenham(hMemDC);
-	}
-	else
-	{
-		DrawTIle(hMemDC);
-		DrawPathLine(hMemDC);
-		DrawKeyInfo(hMemDC);
-	}
+	DrawTIle(hMemDC);
+
+	DrawBresenham(hMemDC);
 
 	BitBlt(hDC, 0, 0, g_WinRect.right, g_WinRect.bottom, hMemDC, 0, 0, SRCCOPY);
 	SelectObject(hMemDC, hOldBitmap);
@@ -146,8 +144,29 @@ void DrawKeyInfo(HDC hDC)
 
 void DrawBresenham(HDC hDC)
 {
-	HBRUSH hOldBrush = NULL;
-	HPEN hOldPen = (HPEN)SelectObject(hDC, g_RectPen);
+	if (!g_bDrawBr)
+		return;
+
+	HPEN hPathPen = CreatePen(PS_SOLID, 3, RGB(0, 0, 0));
+	HPEN hOldPen = (HPEN)SelectObject(hDC, hPathPen);
+
+	for (int iCnt = 0; iCnt < g_iPathCnt - 1; ++iCnt)
+	{
+		MoveToEx(hDC, g_vPathPos[iCnt].iX * df_TILE_SIZE + (df_TILE_SIZE / 2), g_vPathPos[iCnt].iY * df_TILE_SIZE + (df_TILE_SIZE / 2), NULL);
+		LineTo(hDC, g_vPathPos[iCnt + 1].iX * df_TILE_SIZE + (df_TILE_SIZE / 2), g_vPathPos[iCnt + 1].iY * df_TILE_SIZE + (df_TILE_SIZE / 2));
+	}
+
+	SelectObject(hDC, hOldPen);
+	DeleteObject(hPathPen);
+
+	hPathPen = CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
+	hOldPen = (HPEN)SelectObject(hDC, hPathPen);
+	for (int iCnt = 0; iCnt < g_iLineCnt - 1; iCnt++)
+	{
+		MoveToEx(hDC, g_vLinePos[iCnt].iX * df_TILE_SIZE + (df_TILE_SIZE / 2), g_vLinePos[iCnt].iY * df_TILE_SIZE + (df_TILE_SIZE / 2), NULL);
+		LineTo(hDC, g_vLinePos[iCnt + 1].iX * df_TILE_SIZE + (df_TILE_SIZE / 2), g_vLinePos[iCnt + 1].iY * df_TILE_SIZE + (df_TILE_SIZE / 2));
+	}
+
 
 	SelectObject(hDC, hOldPen);
 }

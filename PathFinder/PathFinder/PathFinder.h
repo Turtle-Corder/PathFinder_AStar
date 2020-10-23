@@ -9,9 +9,11 @@ extern BOOL g_bProcessEnd;
 extern BOOL g_bOnProcess;
 
 extern BOOL g_bLineTest;
-extern BOOL g_bBresenhamEnd;
+extern BOOL g_bDrawBr;
 
 extern COLORREF g_LineTestMap[df_TILE_HEIGHT][df_TILE_WIDTH];
 
 
 BOOL InitialWindow(HINSTANCE hInstance, WNDPROC WndPorc, TCHAR *pAppName = (TCHAR*)_T("PathFinder"));
+
+void StartInterpolation();
